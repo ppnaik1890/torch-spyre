@@ -117,6 +117,28 @@ INCLUDE_DIRS += [os.environ["SEN_COMMON_HEADERS"]]
 
 LIBRARIES = ["sendnn", "sendnn_interface", "flex"]
 
+# Optional AIUPTI support for kineto profiler integration
+define_macros_core = [
+    ("PACKAGE_NAME", f'"{PACKAGE_NAME}"'),
+    ("MODULE_NAME", f'"{PACKAGE_NAME}._C"'),
+    ("SPYRE_DEBUG_ENV", '"TORCH_SPYRE_DEBUG"'),
+    ("SPYRE_DOWNCAST_ENV", '"TORCH_SPYRE_DOWNCAST_WARN"'),
+    ("EAGER_MODE_ENV", '"EAGER_MODE"'),
+    ("BOOST_ALL_DYN_LINK", None),  # avoid static link to boost
+]
+
+if "LIBAIUPTI_INSTALL_DIR" in os.environ:
+    LIBAIUPTI_DIR = Path(os.environ["LIBAIUPTI_INSTALL_DIR"])
+    INCLUDE_DIRS += [LIBAIUPTI_DIR / "include" / "libaiupti"]
+    # Try lib64 first, then lib
+    lib_path = LIBAIUPTI_DIR / "lib64"
+    if not lib_path.exists():
+        lib_path = LIBAIUPTI_DIR / "lib"
+    if lib_path.exists():
+        LIBRARY_DIRS += [lib_path]
+    LIBRARIES += ["aiupti"]
+    define_macros_core.append(("HAS_AIUPTI", None))
+
 # FIXME: added no-deprecated as this fails in sentensor_shape.hpp
 # - we need to fix there
 # Note that we always compile with debug info
@@ -201,6 +223,8 @@ if __name__ == "__main__":
         OUTPUT_CODEGEN_DIR = run_codegen()
 
         sources = list(CSRC_DIR.glob("*.cpp"))
+        # Include profiling sources (AIUPTI plugin)
+        sources += list((CSRC_DIR / "profiling").glob("*.cpp"))
         if OUTPUT_CODEGEN_DIR:
             sources += list(OUTPUT_CODEGEN_DIR.glob("*.cpp"))
 
@@ -223,14 +247,7 @@ if __name__ == "__main__":
                 library_dirs=[str(p) for p in LIBRARY_DIRS],
                 libraries=LIBRARIES,
                 extra_compile_args={"cxx": EXTRA_CXX_FLAGS},
-                define_macros=[
-                    ("PACKAGE_NAME", f'"{PACKAGE_NAME}"'),
-                    ("MODULE_NAME", f'"{PACKAGE_NAME}._C"'),
-                    ("SPYRE_DEBUG_ENV", '"TORCH_SPYRE_DEBUG"'),
-                    ("SPYRE_DOWNCAST_ENV", '"TORCH_SPYRE_DOWNCAST_WARN"'),
-                    ("EAGER_MODE_ENV", '"EAGER_MODE"'),
-                    ("BOOST_ALL_DYN_LINK", None),  # avoid static link to boost
-                ],
+                define_macros=define_macros_core,
             ),
             CppExtension(
                 name=f"{PACKAGE_NAME}._hooks",
