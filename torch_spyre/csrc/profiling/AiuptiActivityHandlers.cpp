@@ -19,7 +19,7 @@
 #include "AiuptiActivityProfiler.h"
 
 #include <aiupti_runtime_cbid.h>
-
+#include <algorithm>
 #include <string>
 
 namespace KINETO_NAMESPACE {

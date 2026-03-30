@@ -128,6 +128,27 @@ define_macros_core = [
 ]
 
 
+def find_pytorch_include_dir():
+    """Find PyTorch's main include directory for torch headers."""
+    try:
+        import torch
+        torch_path = Path(torch.__file__).parent
+
+        # Try common PyTorch include locations
+        torch_include_locations = [
+            torch_path / "include",
+            torch_path / ".." / "torch" / "include",
+        ]
+
+        for inc_path in torch_include_locations:
+            if (inc_path / "torch").exists() or (inc_path / "torch" / "csrc").exists():
+                return inc_path
+
+        return None
+    except ImportError:
+        return None
+
+
 def find_libkineto_from_pytorch():
     """Find libkineto from local PyTorch installation."""
     try:
@@ -145,6 +166,9 @@ def find_libkineto_from_pytorch():
         for kineto_path in kineto_locations:
             if (kineto_path / "libkineto.h").exists():
                 return kineto_path
+            # Also check for Logger.h which is also part of libkineto
+            if (kineto_path / "Logger.h").exists():
+                return kineto_path
 
         return None
     except ImportError:
@@ -153,16 +177,37 @@ def find_libkineto_from_pytorch():
 
 if "LIBAIUPTI_INSTALL_DIR" in os.environ:
     LIBAIUPTI_DIR = Path(os.environ["LIBAIUPTI_INSTALL_DIR"])
-    # Add both libkineto and libaiupti include directories
-    INCLUDE_DIRS += [
-        LIBAIUPTI_DIR / "include",
-        LIBAIUPTI_DIR / "include" / "libaiupti",
-    ]
 
-    # Try to find libkineto from local PyTorch build
+    # Check if LIBAIUPTI_INSTALL_DIR points directly to libaiupti or to a parent dir
+    if (LIBAIUPTI_DIR / "aiupti_activity.h").exists():
+        # Direct path to libaiupti headers
+        INCLUDE_DIRS += [LIBAIUPTI_DIR]
+    else:
+        # Path to parent directory (traditional structure)
+        INCLUDE_DIRS += [
+            LIBAIUPTI_DIR / "include",
+            LIBAIUPTI_DIR / "include" / "libaiupti",
+        ]
+
+    # Add PyTorch's main include directory (needed for torch/csrc/profiler headers)
+    pytorch_include = find_pytorch_include_dir()
+    if pytorch_include:
+        INCLUDE_DIRS += [pytorch_include]
+
+    # Try to find libkineto from local PyTorch build (required for Logger.h and other libkineto headers)
     kineto_include = find_libkineto_from_pytorch()
     if kineto_include:
         INCLUDE_DIRS += [kineto_include]
+    else:
+        # Fallback: try common system locations for libkineto
+        common_kineto_paths = [
+            Path("/usr/include/kineto"),
+            Path("/usr/local/include/kineto"),
+        ]
+        for path in common_kineto_paths:
+            if path.exists():
+                INCLUDE_DIRS += [path]
+                break
 
     # Try lib64 first, then lib
     lib_path = LIBAIUPTI_DIR / "lib64"

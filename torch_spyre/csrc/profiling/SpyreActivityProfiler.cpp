@@ -18,5 +18,10 @@
 #include <torch/csrc/profiler/standalone/privateuse1_profiler.h>
 
 #ifdef HAS_AIUPTI
-REGISTER_PRIVATEUSE1_PROFILER(KINETO_NAMESPACE::AIUActivityProfiler)
+namespace KINETO_NAMESPACE {
+/*REGISTER_PRIVATEUSE1_PROFILER(AIUActivityProfiler)
+}*/
+//using AIUActivityProfilerType = KINETO_NAMESPACE::AIUActivityProfiler;
+REGISTER_PRIVATEUSE1_PROFILER(AiuptiActivityProfilerSession);
+}
 #endif
