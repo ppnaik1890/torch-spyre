@@ -18,6 +18,8 @@
 
 #pragma once
 
+#ifdef HAS_AIUPTI
+
 #include <libkineto.h>
 #include <output_base.h>
 #include <time_since_epoch.h>
@@ -43,3 +45,5 @@ class AiuptiActivityApi;
 using DeviceIndex_t = int8_t;
 
 } // namespace KINETO_NAMESPACE
+
+#endif  // HAS_AIUPTI

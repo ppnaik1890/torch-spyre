@@ -18,6 +18,8 @@
 
 #pragma once
 
+#ifdef HAS_AIUPTI
+
 #include "AiuptiActivityBuffer.h"
 #include "AiuptiProfilerMacros.h"
 
@@ -80,3 +82,5 @@ class AiuptiActivityApi {
 };
 
 } // namespace KINETO_NAMESPACE
+
+#endif  // HAS_AIUPTI

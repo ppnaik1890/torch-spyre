@@ -18,6 +18,8 @@
 
 #pragma once
 
+#ifdef HAS_AIUPTI
+
 #include "AiuptiProfilerMacros.h"
 
 #include <assert.h>
@@ -59,3 +61,5 @@ class AiuptiActivityBuffer {
 
 using AiuptiActivityBufferDeque = std::deque<std::pair<uint8_t*, std::unique_ptr<AiuptiActivityBuffer>>>;
 } // namespace KINETO_NAMESPACE
+
+#endif  // HAS_AIUPTI

@@ -127,16 +127,50 @@ define_macros_core = [
     ("BOOST_ALL_DYN_LINK", None),  # avoid static link to boost
 ]
 
+
+def find_libkineto_from_pytorch():
+    """Find libkineto from local PyTorch installation."""
+    try:
+        import torch
+        torch_path = Path(torch.__file__).parent
+
+        # Try common libkineto locations in torch installation
+        kineto_locations = [
+            torch_path / "include" / "kineto",
+            torch_path / "include",
+            torch_path / ".." / "torch" / "include" / "kineto",
+            torch_path / ".." / "torch" / "include",
+        ]
+
+        for kineto_path in kineto_locations:
+            if (kineto_path / "libkineto.h").exists():
+                return kineto_path
+
+        return None
+    except ImportError:
+        return None
+
+
 if "LIBAIUPTI_INSTALL_DIR" in os.environ:
     LIBAIUPTI_DIR = Path(os.environ["LIBAIUPTI_INSTALL_DIR"])
-    INCLUDE_DIRS += [LIBAIUPTI_DIR / "include" / "libaiupti"]
+    # Add both libkineto and libaiupti include directories
+    INCLUDE_DIRS += [
+        LIBAIUPTI_DIR / "include",
+        LIBAIUPTI_DIR / "include" / "libaiupti",
+    ]
+
+    # Try to find libkineto from local PyTorch build
+    kineto_include = find_libkineto_from_pytorch()
+    if kineto_include:
+        INCLUDE_DIRS += [kineto_include]
+
     # Try lib64 first, then lib
     lib_path = LIBAIUPTI_DIR / "lib64"
     if not lib_path.exists():
         lib_path = LIBAIUPTI_DIR / "lib"
     if lib_path.exists():
         LIBRARY_DIRS += [lib_path]
-    LIBRARIES += ["aiupti"]
+    LIBRARIES += ["aiupti", "kineto"]
     define_macros_core.append(("HAS_AIUPTI", None))
 
 # FIXME: added no-deprecated as this fails in sentensor_shape.hpp
@@ -223,8 +257,9 @@ if __name__ == "__main__":
         OUTPUT_CODEGEN_DIR = run_codegen()
 
         sources = list(CSRC_DIR.glob("*.cpp"))
-        # Include profiling sources (AIUPTI plugin)
-        sources += list((CSRC_DIR / "profiling").glob("*.cpp"))
+        # Include profiling sources (AIUPTI plugin) only if libaiupti is available
+        if "LIBAIUPTI_INSTALL_DIR" in os.environ:
+            sources += list((CSRC_DIR / "profiling").glob("*.cpp"))
         if OUTPUT_CODEGEN_DIR:
             sources += list(OUTPUT_CODEGEN_DIR.glob("*.cpp"))
 

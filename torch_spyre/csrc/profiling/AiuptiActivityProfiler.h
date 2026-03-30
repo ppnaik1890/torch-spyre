@@ -18,6 +18,8 @@
 
 #pragma once
 
+#ifdef HAS_AIUPTI
+
 #include <mutex>
 #include <unordered_map>
 
@@ -127,3 +129,5 @@ class AIUActivityProfiler : public libkineto::IActivityProfiler {
 };
 
 } // namespace KINETO_NAMESPACE
+
+#endif  // HAS_AIUPTI
