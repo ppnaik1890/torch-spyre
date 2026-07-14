@@ -16,6 +16,8 @@
 
 #include "job_plan.h"
 
+#include <ATen/record_function.h>
+
 #include <iostream>
 #include <memory>
 #include <utility>
@@ -29,6 +31,7 @@ namespace spyre {
 
 void JobPlanStepH2D::construct(LaunchContext&,
                                const SpyreStream& stream) const {
+  RECORD_FUNCTION("spyre::stream::H2D", {});
   auto* params =
       flex::createDmaParams(host_address_, device_address_.total_size(),
                             /*to_device=*/true, &device_address_);
@@ -47,6 +50,7 @@ void JobPlanStepH2D::write(std::ostream& os) const {
 
 void JobPlanStepD2H::construct(LaunchContext&,
                                const SpyreStream& stream) const {
+  RECORD_FUNCTION("spyre::stream::D2H", {});
   auto* params =
       flex::createDmaParams(host_address_, device_address_.total_size(),
                             /*to_device=*/false, &device_address_);
@@ -65,6 +69,10 @@ void JobPlanStepD2H::write(std::ostream& os) const {
 
 void JobPlanStepCompute::construct(LaunchContext& ctx,
                                    const SpyreStream& stream) const {
+  RECORD_FUNCTION(
+      name_.empty() ? "spyre::stream::Compute"
+                    : "spyre::stream::Compute:" + name_,
+      {});
   std::vector<const flex::CompositeAddress*> tensor_allocs;
   if (bind_io_addresses_) {
     for (auto& tensor : ctx.inputs_outputs) {
@@ -108,6 +116,7 @@ static int64_t composite_address_to_dmva(
 
 void JobPlanStepHostCompute::construct(LaunchContext& ctx,
                                        const SpyreStream& stream) const {
+  RECORD_FUNCTION("spyre::stream::HostCallback", {});
   // Helper lambda to build HostCallbackParams and launch on the stream
   auto launch_host_callback = [this, &stream](auto&& callback) {
     auto* params = flex::createHostCallbackParams(

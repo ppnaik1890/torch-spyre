@@ -16,6 +16,7 @@
 
 #include "spyre_stream.h"
 
+#include <ATen/record_function.h>
 #include <c10/core/Device.h>
 #include <c10/core/Stream.h>
 
@@ -233,6 +234,7 @@ void SpyreStream::fillAsync(const flex::CompositeAddress* dst, double value,
 
 void SpyreStream::launch(const JobPlan& plan,
                          const std::vector<at::Tensor>& args) const {
+  RECORD_FUNCTION("spyre::stream::launch", {});
   // Validate all tensors are on Spyre device
   for (size_t i = 0; i < args.size(); ++i) {
     TORCH_CHECK(args[i].is_privateuseone(), "SpyreStream::launch: argument ", i,
