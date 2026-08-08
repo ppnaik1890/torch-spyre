@@ -20,6 +20,7 @@
 
 #include <c10/util/Logging.h>
 
+#include <algorithm>
 #include <cassert>
 #include <chrono>
 #include <cstdlib>
@@ -33,6 +34,7 @@
 namespace KINETO_NAMESPACE {
 
 constexpr size_t kBufSize(32 * 1024 * 1024);
+constexpr int kDefaultMaxAiuBufferCount = 32;
 
 AiuptiActivityApi& AiuptiActivityApi::singleton() {
   static AiuptiActivityApi instance;
@@ -85,7 +87,8 @@ static bool nextActivityRecord(uint8_t* buffer, size_t valid_size,
 }
 
 void AiuptiActivityApi::setMaxBufferSize(int size) {
-  maxAiuBufferCount_ = 1 + size / kBufSize;
+  int count = 1 + size / kBufSize;
+  maxAiuBufferCount_ = std::max(count, kDefaultMaxAiuBufferCount);
 }
 
 void AiuptiActivityApi::bufferRequestedTrampoline(uint8_t** buffer,
